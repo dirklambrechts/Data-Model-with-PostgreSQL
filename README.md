@@ -5,7 +5,8 @@
 2. [Using the application](#getting_started)
 	1. [Requirements to run project](#dependencies)
 	2. [Executing Program](#execution)
-	3. [ETL pipeline and schema design](#pipeline_and_schema_design)
+	3. [Executing Program with Docker](#execution_docker)
+	4. [ETL pipeline and schema design](#pipeline_and_schema_design)
 3. [Example queries](#example_queries)
 4. [Acknowledgements](#acknowledgements)
 5. [Authors](#authors)
@@ -40,6 +41,79 @@ The main functionality of the etl pipeline includes:
 
 2. Open the notebook file and run each cell to confirm that the records have been added to the database.
     
+<a name="execution_docker"></a>
+### Executing Program using Docker:
+1. Change your working directory to the root of the git repo:
+```
+$ cd Data-Model-with-PostgreSQL
+$ tree -L 1
+.
+├── create_tables.py
+├── data
+├── docker
+├── ERD_PostgresModel.png
+├── etl.ipynb
+├── etl.py
+├── README.md
+├── requirements.txt
+├── Run_create_table.ipynb
+├── sql_queries.py
+└── test.ipynb
+```
+
+2. Build the `datamodel_psql_jupyter` docker image:
+```
+# docker build \
+	-f ./docker/Dockerfile \
+	-t datamodel_psql_jupyter \
+	./
+```
+
+3. Create a docker network for the `datamodel_psql_jupyter` and `datamodel_psql_db` images:
+```
+# docker network create datamodel_psql_net
+```
+
+4. Download and run a generic PostgreSQL docker image:
+```
+# docker run \
+	--rm \
+	--net datamodel_psql_net \
+	--name datamodel_psql_db \
+	-e POSTGRES_DB=studentdb \
+	-e POSTGRES_USER=student \
+	-e POSTGRES_PASSWORD=student \
+	-d postgres
+```
+
+5. Start the `datamodel_psql_jupyter` image
+```
+# docker run \
+	--rm \
+	--net datamodel_psql_net \
+	--name datamodel_psql_jupyter \
+	-it -p 127.0.0.1:8888:8888 --rm \
+	datamodel_psql_jupyter
+```
+
+6. You should be able to access a jupyter notebook at http://localhost:8888 now. Please note that the data will not be persistent.
+
+7. To stop the docker containers and remove them, run the following:
+```
+# docker stop datamodel_psql_db
+# docker network rm datamodel_psql_net
+# docker rmi datamodel_psql_jupyter postgres
+````
+
+8. There are two helper scripts provided, for running the services (linux only):
+```
+$ ./docker/docker_configure_and_run.sh
+```
+and for cleaning up docker when you're done testing:
+```
+$ ./docker/docker_stop_and_cleanup.sh
+```
+
 <a name="pipeline_and_schema_design"></a>
 ### ETL pipeline and schema design:
 The ETL pipeline reads in the application log data (provided by Sparkify) contained within the JSON files and arranges the data into a relational Postgres database with the following schema:
